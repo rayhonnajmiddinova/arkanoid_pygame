@@ -2,6 +2,8 @@
 
 ## Requirements
 
+<img width="812" height="640" alt="image" src="https://github.com/user-attachments/assets/b1317ae7-1ba1-4877-a840-5e3d82cddf35" />
+
 You'll need
 
 1. Git
