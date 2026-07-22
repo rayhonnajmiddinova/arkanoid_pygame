@@ -1,114 +1,62 @@
+"""Entry point: sets up pygame and routes between screens."""
+from __future__ import annotations
 import pygame
 import settings as cfg
+from game import audio
 from screens.game_screen import run as game_screen
-from game.entities import Paddle, Brick, Ball
-from game.level import load_level
 
-def _bounce_off_rect(ball: Ball, rect: pygame.Rect):
-    """ Checks if the Ball collides with the given rect. """
 
-    # Calculate ball's overlaps and find the smallest one
-    overlap_left = ball.rect.right - rect.left
-    overlap_right = rect.right - ball.rect.left
-    overlap_top = ball.rect.bottom - rect.top
-    overlap_bottom = rect.bottom - ball.rect.top
+def _message_screen(screen, clock, title, subtitle, color):
+    """ Shows a full-screen message until the player presses a key. Returns the key action. """
+    big = pygame.font.SysFont("consolas", 56, bold=True)
+    small = pygame.font.SysFont("consolas", 22)
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return "quit"
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return "quit"
+                return "continue"
+        screen.fill(cfg.BLACK)
+        t = big.render(title, True, color)
+        s = small.render(subtitle, True, cfg.WHITE)
+        screen.blit(t, t.get_rect(center=(cfg.WIDTH // 2, cfg.HEIGHT // 2 - 30)))
+        screen.blit(s, s.get_rect(center=(cfg.WIDTH // 2, cfg.HEIGHT // 2 + 30)))
+        pygame.display.flip()
+        clock.tick(cfg.FPS)
 
-    min_overlap = min(
-        overlap_bottom,
-        overlap_left,
-        overlap_right,
-        overlap_top)
-    
-    # Calculate the Ball's final velocities
-    if min_overlap == overlap_top and ball.vy > 0:
-        print('top')
-        ball.rect.bottom = rect.top
-        ball.vy *= -1
-    elif min_overlap == overlap_bottom and ball.vy < 0:
-        print('bottom')
-
-        ball.rect.top = rect.bottom
-        ball.vy *= -1
-    elif min_overlap == overlap_left and ball.vx > 0:
-        print('left')
-
-        ball.rect.right = rect.left
-        ball.vx *= -1
-    elif min_overlap == overlap_right and ball.vy < 0:
-        print('right')
-
-        ball.rect.left = rect.right
-        ball.vx *= -1
-
-def _handle_ball_vs_bricks(
-    ball: Ball,
-    bricks: list[Brick],
-) -> int:
-
-    scored = 0
-    for brick in bricks[:]:  
-        if not ball.rect.colliderect(brick.rect):
-            continue
-        _bounce_off_rect(ball, brick.rect)
-        if brick.hp == -1: 
-            continue
-        bonus_type = brick.hit()
-
-        if brick.hp <= 0:
-            bricks.remove(brick)
-            scored += 10
-    return scored
-
-def _handle_ball_vs_paddle(ball: Ball, paddle: Paddle) -> None:
-    """ Handles Ball bounce over the Paddle. """
-    _bounce_off_rect(ball, paddle.rect)
-    offset = (ball.rect.centerx - paddle.rect.centerx) / (paddle.rect.width / 2)
-    max_vx = cfg.MAX_BALL_SPEED_X
-    ball.vx = max(-max_vx, min(max_vx, offset * max_vx))
 
 def main():
     pygame.init()
     screen = pygame.display.set_mode((cfg.WIDTH, cfg.HEIGHT))
     pygame.display.set_caption("Arkanoid")
     clock = pygame.time.Clock()
+    audio.init()
 
-    running = True
-    paddle = Paddle()
+    if _message_screen(screen, clock, "ARKANOID",
+                       "Press any key to start  -  Esc to quit", cfg.CYAN) == "quit":
+        pygame.quit()
+        return
 
-    bricks, rows, cols = load_level(1)
-    ball = Ball(cfg.WIDTH // 2, cfg.HEIGHT)
+    level = 1
+    while True:
+        result = game_screen(screen, clock, level)
 
-    while running:
-        # Main Loop
-        screen.fill(cfg.BLACK)
-
-        # Update Section
-        keys = pygame.key.get_pressed()
-
-        paddle.move(keys)
-
-        _handle_ball_vs_bricks(ball, bricks)
-
-        if ball.rect.colliderect(paddle.rect) and ball.vy > 0:
-            _handle_ball_vs_paddle(ball, paddle)
-
-        for brick in bricks:
-            brick.draw(screen)
-
-        ball.update()
-
-        # Draw Section
-        paddle.draw(screen)
-        ball.draw(screen)
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:   # Press "close" button
-                running = False
-
-        pygame.display.flip()   # Screen Update
-        clock.tick(cfg.FPS)         # FPS (Frames Per Second)
+        if result == "quit":
+            break
+        if result == "win":
+            action = _message_screen(screen, clock, "YOU WIN!",
+                                     "Press any key to play again  -  Esc to quit", cfg.GREEN)
+        else:  # lose
+            action = _message_screen(screen, clock, "GAME OVER",
+                                     "Press any key to retry  -  Esc to quit", cfg.RED)
+        if action == "quit":
+            break
+        level = 1  # single level for now; increment here when more levels exist
 
     pygame.quit()
+
 
 if __name__ == "__main__":
     main()
