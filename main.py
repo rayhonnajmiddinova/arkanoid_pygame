@@ -6,7 +6,6 @@ from game import audio
 from screens.game_screen import run as game_screen
 
 
-
 def _message_screen(screen, clock, title, subtitle, color):
     """ Shows a full-screen message until the player presses a key. Returns the key action. """
     big = pygame.font.SysFont("consolas", 56, bold=True)
