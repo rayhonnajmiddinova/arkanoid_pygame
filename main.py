@@ -7,6 +7,7 @@ from game.level import load_level
 def _bounce_off_rect(ball: Ball, rect: pygame.Rect):
     """ Checks if the Ball collides with the given rect. """
 
+
     # Calculate ball's overlaps and find the smallest one
     overlap_left = ball.rect.right - rect.left
     overlap_right = rect.right - ball.rect.left
